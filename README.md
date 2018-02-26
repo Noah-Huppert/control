@@ -3,4 +3,4 @@
 Open source universal remote
 
 #### Icons
-Icons provided by ![Icons 8 logo - square with legs](/img/icons8.png)
+Icons provided by [Icons 8](https://icons8.com/).
