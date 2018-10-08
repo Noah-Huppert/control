@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+
+	"github.com/Noah-Huppert/control/server/api"
 	"github.com/Noah-Huppert/control/server/config"
 	"github.com/Noah-Huppert/control/server/libdb"
 
@@ -8,6 +11,9 @@ import (
 )
 
 func main() {
+	// Context
+	ctx := context.Background()
+
 	// Logger
 	logger := golog.NewStdLogger("control")
 
@@ -23,5 +29,17 @@ func main() {
 		logger.Fatalf("error connecting to database: %s", err.Error())
 	}
 
-	logger.Debugf("OK!: %#v", db)
+	logger.Debugf("db: %#v", db)
+
+	// API server
+	server := api.NewServer(*cfg)
+
+	logger.Debugf("starting api server on :%d", cfg.Port)
+	err = api.StartServer(ctx, server)
+
+	if err != nil {
+		logger.Fatalf("error running api server: %s", err.Error())
+	}
+
+	logger.Debug("Done")
 }
