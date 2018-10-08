@@ -32,7 +32,7 @@ func main() {
 	logger.Debugf("db: %#v", db)
 
 	// API server
-	server := api.NewServer(*cfg)
+	server := api.NewServer(*cfg, logger, db)
 
 	logger.Debugf("starting api server on :%d", cfg.Port)
 	err = api.StartServer(ctx, server)

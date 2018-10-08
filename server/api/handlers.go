@@ -7,17 +7,29 @@ import (
 
 	"github.com/Noah-Huppert/control/server/config"
 
+	"github.com/Noah-Huppert/golog"
 	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
 )
 
 // NewServer creates a new http server which serves API requests
-func NewServer(cfg config.Config) http.Server {
+func NewServer(cfg config.Config, logger golog.Logger,
+	db *sqlx.DB) http.Server {
+
 	// Register handlers
 	router := mux.NewRouter()
+
+	routesLogger := logger.GetChild("routes")
 
 	// ... Health check endpoint
 	healthCheckHandler := NewHealthCheckHandler()
 	router.Handle("/healthz", healthCheckHandler)
+
+	// ... Register endpoint
+	registerLogger := routesLogger.GetChild("register")
+	registerHandler := NewRegisterHandler(registerLogger, db)
+
+	router.Handle("/api/v0/register", registerHandler).Methods("POST")
 
 	// Setup http server
 	server := http.Server{
