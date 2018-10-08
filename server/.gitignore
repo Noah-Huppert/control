@@ -1,2 +1,5 @@
 # Go deps
 vendor/
+
+# App config
+.env
