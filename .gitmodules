@@ -1,0 +1,3 @@
+[submodule "devices/omega-relay/omega-toolchain"]
+	path = devices/omega-relay/omega-toolchain
+	url = https://git.openwrt.org/openwrt/openwrt.git
