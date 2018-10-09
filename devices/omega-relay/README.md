@@ -28,13 +28,11 @@ the Omega.
    All following commands should be executed in this directory.
 4. Add Omega packages to OpenWRT
    ```
-   cd openwrt
    echo 'src-git onion https://github.com/OnionIoT/OpenWRT-Packages.git' >> feeds.conf.default
    scripts/feeds update -a
    ```
 5. Build the toolchain
     ```
-    cd openwrt
     make toolchain/install -j4
     ```
 	This may take some time.  
