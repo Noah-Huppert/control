@@ -55,3 +55,9 @@ Cross compile the source code for the Omega v1 by running:
 ```
 make build
 ```
+
+Upload the built executable to the Omega by running:
+
+```
+make scp
+```
