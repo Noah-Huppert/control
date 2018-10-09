@@ -10,25 +10,48 @@ Relay controlled by an Omega v1.
 A control device which switches a relay using the Omega v1. 
 
 # Setup
-Build the Omega toolchain, this will take some time:
+The OpenWRT toolchain must be setup in order to cross compile software for
+the Omega.
 
-```
-git submodules init --update
-cd omega-toolchain
-make toolchain/install
-```
-
-Add the toolchain to Rust:
-
-```
-rustup target add mipsel-unknown-linux-musl
-```
+1. Clone OpenWRT repository
+   ```
+   git submodule init --update
+   ```
+2. Copy the build configuration
+   ```
+   cp openwrt-files/.config openwrt
+   ```
+3. Enter the OpenWRT repository
+   ```
+   cd openwrt
+   ```
+   All following commands should be executed in this directory.
+4. Add Omega packages to OpenWRT
+   ```
+   cd openwrt
+   echo 'src-git onion https://github.com/OnionIoT/OpenWRT-Packages.git' >> feeds.conf.default
+   scripts/feeds update -a
+   ```
+5. Build the toolchain
+    ```
+    cd openwrt
+    make toolchain/install -j4
+    ```
+	This may take some time.  
+	The `-j4` option makes the build tools use 4 cores for compilation. Change 
+	this option as needed.
+6. Copy toolchain library files to the Omega
+   ```
+   scp staging_dir/toolchain-mips_24kc_gcc-7.3.0_musl/lib/ld-musl-mips-sf.so.1 root@<ip>:/lib
+   ```
+7. Add the toolchain to Rust:
+   ```
+   rustup target add mips-unknown-linux-musl
+   ```
 
 # Development
 Cross compile the source code for the Omega v1 by running:
 
 ```
 make build
-# or
-make
 ```
