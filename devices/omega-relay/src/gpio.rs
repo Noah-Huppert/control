@@ -1,4 +1,7 @@
 use std::path::Path;
+use std::io;
+use std::io::Write;
+use std::fs::File;
 
 /// Operating system path where GPIO device files are located
 const GPIO_PORT_PATH: &str = "/sys/class/gpio";
@@ -47,7 +50,7 @@ const GPIO_PORT_PATH: &str = "/sys/class/gpio";
 /// Write to this file to set the value
 pub struct GPIOPort {
     /// Identifying port number
-    pub number: i8,
+    pub number: u8,
 }
 
 /// Indicates the status of a GPIOPort with the OS
@@ -77,17 +80,44 @@ impl GPIOPort {
     }
 
     /// Sets GPIO port status with OS
-    pub fn set_status(&self, status: GPIOPortStatus) {
+    pub fn set_status(&self, status: GPIOPortStatus) -> Result<(), io::Error> {
         // Prepare to write to the /export or /unexport file based on status
-        let mut set_f_path = GPIO_PORT_PATH.to_owned();
+        let mut status_f_path = GPIO_PORT_PATH.to_owned();
 
         match status {
             GPIOPortStatus::Exported => {
-                set_f_path.push_str("/export");
+                status_f_path.push_str("/export");
             },
             GPIOPortStatus::Unexported => {
-                set_f_path.push_str("/unexport");
+                status_f_path.push_str("/unexport");
             }
         }
+
+        // Write to file
+        let mut status_f = File::create(status_f_path).unwrap();
+
+        let write_v = [self.number];
+        status_f.write_all(&write_v)
+    }
+
+    /// Sets the GPIO port value
+    ///
+    /// # Arguments
+    /// 
+    /// * `value` - True to set port value to 1, False to set port value to 0
+    pub fn set_value(&self, value: bool) -> Result<(), io::Error> {
+        // Determine value to write
+        let mut write_v: &[u8] = &[1u8];
+
+        if !value {
+            write_v[0] = 0u8;
+        }
+
+        // Write to file
+        let value_f_path = GPIO_PORT_PATH.to_owned().push_str("/value");
+
+        let mut value_f = File::create(value_f_path).unwrap();
+
+        value_f.write_all(&write_v)
     }
 }
