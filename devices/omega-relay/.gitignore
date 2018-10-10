@@ -1,2 +1,5 @@
 # Rust build out
 target/
+
+# Rust doc
+doc/
