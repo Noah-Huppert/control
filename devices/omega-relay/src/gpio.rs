@@ -1,7 +1,9 @@
+use byteorder::WriteBytesExt;
 use std::path::Path;
 use std::io;
 use std::io::Write;
 use std::fs::File;
+use std::mem;
 
 /// Operating system path where GPIO device files are located
 const GPIO_PORT_PATH: &str = "/sys/class/gpio";
@@ -63,6 +65,16 @@ pub enum GPIOPortStatus {
     Unexported
 }
 
+fn u8_to_bytes(int: u8) -> [u8; 1] {
+    let mut bytes = [0u8; mem::size_of::<u8>()];
+    match bytes.as_mut().write_u8(int) {
+        Ok(_v) => (),
+        Err(e) => panic!("error writing uint to byte array: {}", e)
+    }
+
+    bytes
+}
+
 impl GPIOPort {
     /// Returns the directory where a specific GPIO ports device files 
     /// are located
@@ -93,11 +105,20 @@ impl GPIOPort {
             }
         }
 
-        // Write to file
-        let mut status_f = File::create(status_f_path).unwrap();
+        panic!("debug: {:?}", status_f_path);
 
-        let write_v = [self.number];
-        status_f.write_all(&write_v)
+        // Write to file
+        let mut status_f = match File::create(status_f_path) {
+            Ok(f) => f,
+            Err(e) => panic!("error opening status file: {}", e)
+        };
+
+        let write_v = u8_to_bytes(self.number);
+     
+        match status_f.write_all(&write_v) {
+            Ok(_v) => Ok(()),
+            Err(e) => panic!("error writing to status file: {}", e)
+        }
     }
 
     /// Sets the GPIO port value
@@ -107,17 +128,20 @@ impl GPIOPort {
     /// * `value` - True to set port value to 1, False to set port value to 0
     pub fn set_value(&self, value: bool) -> Result<(), io::Error> {
         // Determine value to write
-        let mut write_v: &[u8] = &[1u8];
+        let mut write_v: u8 = 1u8;
 
         if !value {
-            write_v[0] = 0u8;
+            write_v = 0u8;
         }
 
+        let write_v_array: &[u8] = &[write_v];
+
         // Write to file
-        let value_f_path = GPIO_PORT_PATH.to_owned().push_str("/value");
+        let mut value_f_path = GPIO_PORT_PATH.to_owned();
+        value_f_path.push_str("/value");
 
         let mut value_f = File::create(value_f_path).unwrap();
 
-        value_f.write_all(&write_v)
+        value_f.write_all(write_v_array)
     }
 }
