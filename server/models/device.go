@@ -50,3 +50,15 @@ func (d *Device) Insert(db *sqlx.DB) error {
 
 	return nil
 }
+
+// SelectAllDevices queries the database for all the Devices
+func SelectAllDevices(db *sqlx.DB) ([]Device, error) {
+	devices := []Device{}
+
+	err := db.Select(&devices, "SELECT * FROM devices")
+	if err != nil {
+		return nil, fmt.Errorf("error querying database: %s", err.Error())
+	}
+
+	return devices, nil
+}
