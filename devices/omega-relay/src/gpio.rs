@@ -124,12 +124,14 @@ impl GPIOPort {
         let mut value_f = try!(File::open(value_f_path)
             .map_err(|e| format!("error opening value file: {}", e)));
 
-        let mut read_v_array = [0u8; 1];
+        let mut read_v = String::new();
 
-        try!(value_f.read(&mut read_v_array[..])
+        try!(value_f.read_to_string(&mut read_v)
             .map_err(|e| format!("error reading value file: {}", e)));
 
-        Ok(read_v_array[0] == 1u8)
+        read_v = read_v.replace("\n", "");
+
+        Ok(read_v == "1")
     }
 
     /// Sets the GPIO port value
@@ -139,13 +141,11 @@ impl GPIOPort {
     /// * `value` - True to set port value to 1, False to set port value to 0
     pub fn set_value(&self, value: bool) -> Result<(), String> {
         // Determine value to write
-        let mut write_v: u8 = 1u8;
+        let mut write_v = "0";
 
-        if !value {
-            write_v = 0u8;
+        if value {
+            write_v = "1";
         }
-
-        let write_v_array: &[u8] = &[write_v];
 
         // Write to file
         let mut value_f_path = self.get_path();
@@ -154,7 +154,7 @@ impl GPIOPort {
         let mut value_f = try!(File::create(value_f_path)
             .map_err(|e| format!("error opening value file: {}", e)));
 
-        try!(value_f.write_all(write_v_array)
+        try!(value_f.write_all(write_v.as_bytes())
              .map_err(|e| format!("error writing data to value file: {}", e)));
 
         Ok(())
