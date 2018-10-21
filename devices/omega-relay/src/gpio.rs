@@ -1,9 +1,7 @@
-use byteorder::WriteBytesExt;
 use std::path::Path;
-use std::io;
 use std::io::Write;
+use std::io::Read;
 use std::fs::File;
-use std::mem;
 
 /// Operating system path where GPIO device files are located
 const GPIO_PORT_PATH: &str = "/sys/class/gpio";
@@ -65,14 +63,14 @@ pub enum GPIOPortStatus {
     Unexported
 }
 
-fn u8_to_bytes(int: u8) -> [u8; 1] {
-    let mut bytes = [0u8; mem::size_of::<u8>()];
-    match bytes.as_mut().write_u8(int) {
-        Ok(_v) => (),
-        Err(e) => panic!("error writing uint to byte array: {}", e)
-    }
+/// Indicates if a GPIOPort is setup to output or receive signals
+#[derive(Debug)]
+pub enum GPIOPortDirection {
+    /// Indicates that the GPIO port is setup to output signals
+    Out,
 
-    bytes
+    /// Indicates tat the GPIO port is setup to receive signals
+    In
 }
 
 impl GPIOPort {
@@ -92,7 +90,7 @@ impl GPIOPort {
     }
 
     /// Sets GPIO port status with OS
-    pub fn set_status(&self, status: GPIOPortStatus) -> Result<(), io::Error> {
+    pub fn set_status(&self, status: GPIOPortStatus) -> Result<(), String> {
         // Prepare to write to the /export or /unexport file based on status
         let mut status_f_path = GPIO_PORT_PATH.to_owned();
 
@@ -105,20 +103,33 @@ impl GPIOPort {
             }
         }
 
-        panic!("debug: {:?}", status_f_path);
-
         // Write to file
-        let mut status_f = match File::create(status_f_path) {
-            Ok(f) => f,
-            Err(e) => panic!("error opening status file: {}", e)
-        };
+        let mut status_f = try!(File::create(status_f_path)
+            .map_err(|e| format!("error opening status file: {}", e)));
 
-        let write_v = u8_to_bytes(self.number);
+        let write_v = format!("{}\n", self.number);
      
-        match status_f.write_all(&write_v) {
+        match status_f.write_all(write_v.as_bytes()) {
             Ok(_v) => Ok(()),
-            Err(e) => panic!("error writing to status file: {}", e)
+            Err(e) => Err(format!("error writing to status file: {}", e))
         }
+    }
+
+    /// Returns the value of the GPIO port
+    pub fn get_value(&self) -> Result<bool, String> {
+        // Read file
+        let mut value_f_path = self.get_path();
+        value_f_path.push_str("/value");
+
+        let mut value_f = try!(File::open(value_f_path)
+            .map_err(|e| format!("error opening value file: {}", e)));
+
+        let mut read_v_array = [0u8; 1];
+
+        try!(value_f.read(&mut read_v_array[..])
+            .map_err(|e| format!("error reading value file: {}", e)));
+
+        Ok(read_v_array[0] == 1u8)
     }
 
     /// Sets the GPIO port value
@@ -126,7 +137,7 @@ impl GPIOPort {
     /// # Arguments
     /// 
     /// * `value` - True to set port value to 1, False to set port value to 0
-    pub fn set_value(&self, value: bool) -> Result<(), io::Error> {
+    pub fn set_value(&self, value: bool) -> Result<(), String> {
         // Determine value to write
         let mut write_v: u8 = 1u8;
 
@@ -137,11 +148,61 @@ impl GPIOPort {
         let write_v_array: &[u8] = &[write_v];
 
         // Write to file
-        let mut value_f_path = GPIO_PORT_PATH.to_owned();
+        let mut value_f_path = self.get_path();
         value_f_path.push_str("/value");
 
-        let mut value_f = File::create(value_f_path).unwrap();
+        let mut value_f = try!(File::create(value_f_path)
+            .map_err(|e| format!("error opening value file: {}", e)));
 
-        value_f.write_all(write_v_array)
+        try!(value_f.write_all(write_v_array)
+             .map_err(|e| format!("error writing data to value file: {}", e)));
+
+        Ok(())
+    }
+
+    /// Returns the direction of the GPIO port
+    pub fn get_direction(&self) -> Result<GPIOPortDirection, String> {
+        // Read file
+        let mut direction_f_path = self.get_path();
+        direction_f_path.push_str("/direction");
+
+        let mut direction_f = try!(File::open(direction_f_path)
+            .map_err(|e| format!("error opening direction file: {}", e)));
+
+        let mut direction_v = String::new();
+
+        try!(direction_f.read_to_string(&mut direction_v)
+             .map_err(|e| format!("error reading direction file: {}", e)));
+
+        if direction_v == "in" {
+            Ok(GPIOPortDirection::In)
+        } else {
+            Ok(GPIOPortDirection::Out)
+        }
+    }
+
+    /// Sets the GPIO port direction
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - Direction to set the port to
+    pub fn set_direction(&self, direction: GPIOPortDirection) -> Result<(), String> {
+        // Determine value to write
+        let direction_v = match direction {
+            GPIOPortDirection::In => "in",
+            GPIOPortDirection::Out => "out"
+        };
+
+        // Write to file
+        let mut direction_f_path = self.get_path();
+        direction_f_path.push_str("/direction");
+
+        let mut direction_f = try!(File::create(direction_f_path)
+            .map_err(|e| format!("error opening direction file: {}", e)));
+
+        try!(direction_f.write_all(direction_v.as_bytes())
+             .map_err(|e| format!("error writing to direction file: {}", e)));
+
+        Ok(())
     }
 }
