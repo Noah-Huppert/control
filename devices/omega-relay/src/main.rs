@@ -1,11 +1,16 @@
-extern crate byteorder;
-
-use std::time::Duration;
-use std::thread;
+#[macro_use] extern crate serde_json;
+#[macro_use] extern crate try_future;
+extern crate hyper;
+extern crate futures;
 
 pub mod gpio;
+pub mod device_client;
+
+use hyper::rt::run;
+use futures::future::{Future, ok};
 
 fn main() {
+    // Setup GPIO port
     let port1 = gpio::GPIOPort{number: 1u8};
 
     port1.set_status(gpio::GPIOPortStatus::Exported)
@@ -14,25 +19,25 @@ fn main() {
     port1.set_direction(gpio::GPIOPortDirection::Out)
         .expect("error setting port to out direction");
 
-    let mut port_v = true;
+    println!("Setup GPIO");
 
-    for _ in 0..10 {
-        match port1.set_value(port_v) {
-            Ok(_) => (),
-            Err(e) => {
-                eprintln!("error setting port value to: {}, error: {}",
-                          port_v, e);
-                break;
-            }
-        }
+    // Setup device client
+    let client = device_client::DeviceClient{
+        control_server_host: String::from("http://192.168.1.106:5000"),
+        physical_id: String::from("omega-relay"),
+    };
 
-        println!("set port to: {}", port_v);
+    let f = client.register()
+        .map_err(|e| format!("error registering device: {}", e))
+        .and_then(|_| {
+            // Cleanup GPIO port
+            port1.set_status(gpio::GPIOPortStatus::Unexported)
+                .expect("error unexporting port");
 
-        port_v = !port_v;
+            println!("Cleaned up GPIO");
 
-        thread::sleep(Duration::from_millis(1000));
-    }
+            ok(())
+        });
 
-    port1.set_status(gpio::GPIOPortStatus::Unexported)
-        .expect("error unexporting port");
+    hyper::rt::run(f) 
 }

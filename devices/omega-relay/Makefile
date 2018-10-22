@@ -3,15 +3,15 @@
 BUILD_TARGET=mips-unknown-linux-musl
 
 OUT_FILE=omega-relay
-HOST_SRC_DIR=target/${BUILD_TARGET}/debug
-GUEST_SRC_DIR=/root
+HOST_SRC_DIR=target/${BUILD_TARGET}/release
+GUEST_SRC_DIR=/mnt/omega-storage
 
 SERIAL_PORT=/dev/ttyUSB0
 SERIAL_BAUD=115200
 
 # build cross compiles source code for the Omega
 build:
-	cargo build --target="${BUILD_TARGET}"
+	cargo build --release --target="${BUILD_TARGET}"
 
 # scp transfers the built binary using scp to the omega
 # args:
