@@ -29,8 +29,6 @@ func main() {
 		logger.Fatalf("error connecting to database: %s", err.Error())
 	}
 
-	logger.Debugf("db: %#v", db)
-
 	// API server
 	server := api.NewServer(*cfg, logger, db)
 

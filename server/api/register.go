@@ -19,6 +19,9 @@ import (
 type RegisterRequest struct {
 	// PhysicalID is the physical ID of the device being registered
 	PhysicalID string `json:"physical_id" validate:"nonzero"`
+
+	// DefaultState is the starting state for the device
+	DefaultState string `json:"default_state" validate:"nonzero"`
 }
 
 // RegisterHandler handles device register requests
@@ -67,9 +70,11 @@ func (h RegisterHandler) Handle(r *http.Request) resp.Responder {
 	}
 
 	err = device.QueryByPhysicalID(h.db)
-	if err == sql.ErrNoRows {
-		// Insert device if not found
+	if err == sql.ErrNoRows { // Insert device if not found
+		device.State = req.DefaultState
+
 		err = device.Insert(h.db)
+
 		if err != nil {
 			err = fmt.Errorf("error inserting new device: %s", err.Error())
 			pubErr := errors.New("error inserting new device model")
@@ -77,7 +82,7 @@ func (h RegisterHandler) Handle(r *http.Request) resp.Responder {
 			return resp.NewErrorResponder(h.logger,
 				http.StatusInternalServerError, pubErr, err)
 		}
-	} else if err != nil {
+	} else if err != nil { // Error querying for device
 		err = fmt.Errorf("error querying for device: %s", err.Error())
 		pubErr := errors.New("error querying for existing device")
 
