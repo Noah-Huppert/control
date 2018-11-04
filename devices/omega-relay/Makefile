@@ -1,4 +1,6 @@
-.PHONY: build scp ssh serial
+.PHONY: build scp ssh serial ssh-copy-id
+
+SSH_KEY=${HOME}/.ssh/omega_key
 
 BUILD_TARGET=mips-unknown-linux-musl
 
@@ -18,15 +20,19 @@ build:
 #	- ip: omega ip
 scp:
 	if [ -z "${ip}" ]; then exit 1; fi
-	scp "${HOST_SRC_DIR}/${OUT_FILE}" "root@${ip}:${GUEST_SRC_DIR}"
+	scp -i "${SSH_KEY}" "${HOST_SRC_DIR}/${OUT_FILE}" "root@${ip}:${GUEST_SRC_DIR}"
 
 # ssh opens an ssh connection to the omega
 # args:
 #	- ip: omega ip
 ssh:
 	if [ -z "${ip}" ]; then exit 1; fi
-	ssh "root@${ip}"
+	ssh -i "${SSH_KEY}" "root@${ip}"
 
 # serial connects to the Omega over serial
 serial:
 	screen "${SERIAL_PORT}" "${SERIAL_BAUD}"
+
+# ssh-copy-id copies your SSH public key to the Omega
+ssh-copy-id:
+	./scripts/ssh-copy-id.sh

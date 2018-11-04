@@ -10,6 +10,7 @@ Relay controlled by an Omega v1.
 A control device which switches a relay using the Omega v1. 
 
 # Setup
+## Toolchain
 The OpenWRT toolchain must be setup in order to cross compile software for
 the Omega.
 
@@ -46,6 +47,19 @@ the Omega.
    ```
    rustup target add mips-unknown-linux-musl
    ```
+
+## SSH Key
+Add your SSH public key to the Omega so you can access it without typing in a 
+password every time.
+
+```
+make ssh-copy-id
+```
+
+The traditional `ssh-copy-id` command will not work because the Omega's SSH 
+client stores authorized SSH keys in `/etc/dropbear/authorized_keys`.
+
+Note: This key must be an RSA typed key.
 
 # Development
 Cross compile the source code for the Omega v1 by running:
