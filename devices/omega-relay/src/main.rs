@@ -1,13 +1,10 @@
-#[macro_use] extern crate serde_json;
-#[macro_use] extern crate try_future;
+//#[macro_use] extern crate serde_json;
 extern crate hyper;
-extern crate futures;
 
 pub mod gpio;
 pub mod device_client;
 
-use hyper::rt::run;
-use futures::future::{Future, ok};
+//use hyper::rt::run;
 
 fn main() {
     // Setup GPIO port
@@ -22,12 +19,13 @@ fn main() {
     println!("Setup GPIO");
 
     // Setup device client
+        /*
     let client = device_client::DeviceClient{
         control_server_host: String::from("http://192.168.1.106:5000"),
         physical_id: String::from("omega-relay"),
     };
 
-    let f = client.register()
+    //let _ = client.register().unwrap();
         .map_err(|e| format!("error registering device: {}", e))
         .and_then(|_| {
             // Cleanup GPIO port
@@ -38,6 +36,7 @@ fn main() {
 
             ok(())
         });
+        */
 
-    hyper::rt::run(f) 
+    //hyper::rt::run(f) 
 }

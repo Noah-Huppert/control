@@ -1,5 +1,5 @@
-use hyper::{Client, Request, Method, header::CONTENT_TYPE};
-use futures::future::{Future, ok, err};
+/*  
+use hyper::{Uri};//, Method, Request};
 
 /// Communicates with the control server
 pub struct DeviceClient {
@@ -43,44 +43,27 @@ impl DeviceClientState {
 
 impl DeviceClient {
     /// Register device with the control server
-    pub fn register(&self) -> Box<Future<Item=(), Error=String>> {
-        // Prepare parameters
-        let client = Client::new();
+    //pub fn register(&self) -> Box<Future<Item=(), Error=String>> {
+    pub fn register(&self) -> Result<(), String> {
+        // URL
+        let mut req_url_str = self.control_server_host.clone();
+        req_url_str.push_str("/api/v0/register");
 
-        // ... URL
-        let mut req_url = self.control_server_host.clone();
-        req_url.push_str("/api/v0/register");
+        let req_url: Uri = try!(req_url_str.parse()
+            .map_err(|e| format!("error parsing request URL: {}", e)));
 
+        Ok(())
         /*
-        let req_url = try_future!(req_url.parse::<Uri>()
-            .map_err(|e| format!("error parsing request url: {}", e)));
-        */
-
         // ... Body
         let req_body = json!({
             "physical_id": self.physical_id,
             "default_state": DeviceClientState::Off.to_str(),
         });
 
-        // Build request
-        let req = Request::builder()
-            .method(Method::POST)
-            .uri(req_url)
-            .header(CONTENT_TYPE, "application/json")
-            .body(req_body.to_string());
-
-        let req = match req.unwrap() {
-            Ok(r) => r,
-            Err(e) => Box::new(err(format!("error building request: {}", e)))
-        }
-
-        // Make request
-        client.request(req)
-            .and_then(|res| {
-                println!("register response status: {}", res.status());
-
-                ok(())
-            })
-            .map_err(|e| format!("error making request: {}", e))
+        let res = client.post(req_url)
+            .body(req_body.to_string())
+            .send()
+        */
     }
 }
+*/
