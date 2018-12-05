@@ -1,8 +1,12 @@
-/*  
-use hyper::{Uri};//, Method, Request};
+use hyper::{Uri, Method, Request, Body}; 
+use hyper::rt::Future;
+use hyper::client::{Client, HttpConnector};
 
 /// Communicates with the control server
 pub struct DeviceClient {
+    /// Hyper client
+    hyper_client: Client<HttpConnector>,
+
     /// Host location of control server
     pub control_server_host: String,
 
@@ -42,9 +46,24 @@ impl DeviceClientState {
 }
 
 impl DeviceClient {
+    /// Create new DeviceClient
+    ///
+    /// # Arguments
+    ///
+    /// * `control_server_host`
+    /// * `physical_id`
+    /// * `hyper_client`
+    pub fn new(control_server_host: String, physical_id: String,
+               hyper_client: Client<HttpConnector>) -> DeviceClient {
+        return DeviceClient{
+            control_server_host: control_server_host,
+            physical_id: physical_id,
+            hyper_client: hyper_client,
+        }
+    }
+
     /// Register device with the control server
-    //pub fn register(&self) -> Box<Future<Item=(), Error=String>> {
-    pub fn register(&self) -> Result<(), String> {
+    pub fn register(&self) -> Future<Item=(), Error=String> {
         // URL
         let mut req_url_str = self.control_server_host.clone();
         req_url_str.push_str("/api/v0/register");
@@ -52,18 +71,22 @@ impl DeviceClient {
         let req_url: Uri = try!(req_url_str.parse()
             .map_err(|e| format!("error parsing request URL: {}", e)));
 
-        Ok(())
-        /*
         // ... Body
         let req_body = json!({
             "physical_id": self.physical_id,
             "default_state": DeviceClientState::Off.to_str(),
         });
 
-        let res = client.post(req_url)
-            .body(req_body.to_string())
-            .send()
-        */
+        let mut req = Request::new(Body::from(req_body.to_string()));
+        *req.method_mut() = Method::POST;
+        *req.uri_mut() = req_url.clone();
+        
+        self.hyper_client.request(req)
+            .map_err(|e| format!("error making API request: {}", e))
+            .and_then(|res| {
+                println!("Status: {}", res.status());
+
+                res.into_body().to_string()
+            })
     }
 }
-*/

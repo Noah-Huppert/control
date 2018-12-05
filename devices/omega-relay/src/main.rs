@@ -1,10 +1,11 @@
-//#[macro_use] extern crate serde_json;
+#[macro_use] extern crate serde_json;
 extern crate hyper;
 
 pub mod gpio;
 pub mod device_client;
 
-//use hyper::rt::run;
+use hyper::rt;
+use hyper::Client;
 
 fn main() {
     // Setup GPIO port
@@ -19,6 +20,14 @@ fn main() {
     println!("Setup GPIO");
 
     // Setup device client
+    rt::run(rt::lazy(|| {
+        let hyper_client = Client::new();
+        let device_client = device_client::DeviceClient::new(
+            String::from("http://192.168.1.106:5000"),
+            String::from("omega-relay"), hyper_client);
+
+        device_client.register()
+    }));
         /*
     let client = device_client::DeviceClient{
         control_server_host: String::from("http://192.168.1.106:5000"),
