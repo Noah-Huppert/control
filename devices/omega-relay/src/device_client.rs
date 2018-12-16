@@ -1,6 +1,64 @@
+use std::fmt;
+use std::error::Error;
 use hyper::{Uri, Method, Request, Body}; 
-use hyper::rt::Future;
+use futures::Future;
+use futures::future::{ok, err};
 use hyper::client::{Client, HttpConnector};
+
+/// Indicates how device client error occurred
+#[derive(Debug)]
+pub enum DeviceErrorType {
+    /// Indicates an error occurred while setting up a request
+    Setup,
+
+    /// Indicates an error occurred while making an API request
+    Request,
+}
+
+/// A device client error
+#[derive(Debug)]
+pub struct DeviceError {
+    /// Indicates the type of error
+    t: DeviceErrorType,
+
+    /// Error message
+    msg: String,
+}
+
+impl DeviceError {
+    /// Creates a new DeviceError
+    ///
+    /// # Arguments
+    ///
+    /// * `t`
+    /// * `msg`
+    pub fn new(t: DeviceErrorType, msg: String) -> DeviceError {
+        return DeviceError{
+            t: t,
+            msg: msg,
+        }
+    }
+}
+
+impl fmt::Display for DeviceError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "DeviceError") 
+    }
+}
+
+impl <'a>Error for DeviceError {
+    fn description<'a>(&self) -> &'a str {
+        let s = match self {
+            Setup => format!("error setting up request: {}", self.msg),
+            Request => format!("error making an API request: {}", self.msg)
+        };
+        &'a s[..]
+    }
+
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
 
 /// Communicates with the control server
 pub struct DeviceClient {
@@ -63,13 +121,20 @@ impl DeviceClient {
     }
 
     /// Register device with the control server
-    pub fn register(&self) -> Future<Item=(), Error=String> {
+    pub fn register(&self) -> impl Future<Item=(), Error=DeviceError> {
+        ok(())
+        /*
         // URL
         let mut req_url_str = self.control_server_host.clone();
         req_url_str.push_str("/api/v0/register");
 
-        let req_url: Uri = try!(req_url_str.parse()
-            .map_err(|e| format!("error parsing request URL: {}", e)));
+        let req_url: Uri = match req_url_str.parse() {
+            Ok(u) => u,
+            Err(e) => {
+                return err(DeviceError::new(DeviceErrorType::Setup, 
+                                 format!("error parsing request URL: {}", e)))
+            }
+        };
 
         // ... Body
         let req_body = json!({
@@ -82,11 +147,17 @@ impl DeviceClient {
         *req.uri_mut() = req_url.clone();
         
         self.hyper_client.request(req)
-            .map_err(|e| format!("error making API request: {}", e))
+            .map_err(|e| {
+                err(DeviceError::new(DeviceErrorType::Request,
+                    format!("error making API request: {}", e)))
+            })
             .and_then(|res| {
                 println!("Status: {}", res.status());
 
-                res.into_body().to_string()
+                println!("Body: {:?}", res.into_body());
+
+                ok(())
             })
+            */
     }
 }
