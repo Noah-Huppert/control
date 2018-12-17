@@ -1,26 +1,38 @@
 .PHONY: build scp ssh serial ssh-copy-id
 
+# Variables
+# ... SSH
 SSH_KEY=${HOME}/.ssh/omega_key
 
-BUILD_TARGET=mips-unknown-linux-musl
+# ... C
+SRC=src/main.c src/gpio.c
+COMPILE_ARGS=-g
 
+HOST_OUT_DIR=build
 OUT_FILE=omega-relay
-HOST_SRC_DIR=target/${BUILD_TARGET}/release
-GUEST_SRC_DIR=/mnt/omega-storage
 
+# ... Omega
+#GUEST_SRC_DIR=/mnt/omega-storage
+GUEST_SRC_DIR=/root
+
+# ... Serial
 SERIAL_PORT=/dev/ttyUSB0
 SERIAL_BAUD=115200
 
 # build cross compiles source code for the Omega
-build:
-	cargo build --release --target="${BUILD_TARGET}"
+build: ${SRC}
+	HOST_OUT_DIR=${HOST_OUT_DIR} \
+	OUT_FILE=${OUT_FILE} \
+	SRC="${SRC}" \
+	./scripts/build.sh \
+	${COMPILE_ARGS}
 
 # scp transfers the built binary using scp to the omega
 # args:
 #	- ip: omega ip
 scp:
 	if [ -z "${ip}" ]; then exit 1; fi
-	scp -i "${SSH_KEY}" "${HOST_SRC_DIR}/${OUT_FILE}" "root@${ip}:${GUEST_SRC_DIR}"
+	scp -i "${SSH_KEY}" "${HOST_OUT_DIR}/${OUT_FILE}" "root@${ip}:${GUEST_SRC_DIR}"
 
 # ssh opens an ssh connection to the omega
 # args:

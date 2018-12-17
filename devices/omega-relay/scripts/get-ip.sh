@@ -14,7 +14,7 @@ export ip=$(nmap 192.168.1.100-149 -p 22 --open -n -oG - | sed '/^#/ d' | awk '{
 
 if [ -z "$ip" ]; then
 	echo "Failed to find device" >&2
-	exit 1
+	return 1
 fi
 
 echo "Found device with ip: $ip"

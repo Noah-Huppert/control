@@ -1,5 +1,2 @@
-# Rust build out
-target/
-
-# Rust doc
-doc/
+# Build output
+build/
