@@ -60,6 +60,11 @@ typedef struct {
 	char *control_path;
 
 	/**
+	 * Path to direction system control for GPIO port
+	 */
+	char *direction_control_path;
+
+	/**
 	 * Error number
 	 */
 	int err_code;
@@ -67,7 +72,12 @@ typedef struct {
 	/**
      * Errno value associated with error code
 	 */
-	int details_err_num;
+	int err_details_num;
+
+	/**
+	 * Character array value associated with error code
+	 */
+	char err_details_chars[10];
 } GPIOPort;
 
 /**
@@ -78,8 +88,6 @@ typedef struct {
 /**
  * Indicates the provided port number is too large. See GPIO_PORT_MAX_NUMBER 
  * for the maximum (inclusive) allowed port number.
- *
- * details_err_num will not be set if this error occurs.
  */
 #define ERR_CODE_PORT_NUMBER_MAX -1
 
@@ -87,23 +95,38 @@ typedef struct {
  * Indicates an error occurred while closing a device control file 
  * or directory.
  *
- * details_err_num will be set to errno if this error occurs.
+ * err_details_num will be set to errno if this error occurs.
  */
 #define ERR_CODE_CLOSE_FAIL -2
 
 /**
  * Indicates an error occurred while opening a device control file 
  *
- * details_err_num will be set to errno if this error occurs.* or directory.
+ * err_details_num will be set to errno if this error occurs.* or directory.
  */
 #define ERR_CODE_OPEN_FAIL -3
 
 /**
  * Indicates an error occurred while writing to a device control file.
  *
- * details_err_num will be set to errno if this error occurs.
+ * err_details_num will be set to errno if this error occurs.
  */
 #define ERR_CODE_WRITE_FAIL -4
+
+/**
+ * Indicates an error occurred while reading from a device control file.
+ *
+ * err_details_num will be set to errno if this error occurs.
+ */
+#define ERR_CODE_READ_FAIL -5
+
+/**
+ * Indicates an error occurred while parsing a string value in a
+ * GPIOPortDirection enum.
+ *
+ * err_details_chars will be set to the string value which could not be parsed.
+ */
+#define ERR_CODE_PARSE_DIR_FAIL -6
 
 /**
  * GPIO system control directory path
@@ -141,6 +164,13 @@ typedef enum {
 } GPIOPortStatus;
 
 /**
+ * Encodes GPIOPortStatus enum value to string
+ * @param status Status to parse
+ * @returns "exported" or "unexported"
+ */
+const char* gpio_port_status_to_string(GPIOPortStatus status);
+
+/**
  * Indicates if GPIO port is sending or receiving signals
  */
 typedef enum {
@@ -154,6 +184,13 @@ typedef enum {
 	 */
 	IN,
 } GPIOPortDirection;
+
+/**
+ * Encodes GPIOPortDirection enum value to string
+ * @param direction Direction to parse
+ * @returns "in" or "out"
+ */
+const char* gpio_port_direction_to_string(GPIOPortDirection direction);
 
 /**
  * Gets message for err_code

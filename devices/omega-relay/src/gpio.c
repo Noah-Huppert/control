@@ -11,6 +11,22 @@ const char* GPIO_PORT_EXPORT_PATH = "/sys/class/gpio/export";
 const char* GPIO_PORT_UNEXPORT_PATH = "/sys/class/gpio/unexport";
 const unsigned int GPIO_PORT_MAX_NUMBER = 99;
 
+const char* gpio_port_status_to_string(GPIOPortStatus status) {
+	if (status == EXPORTED) {
+		return "exported";
+	} else {
+		return "unexported";
+	}
+}
+
+const char* gpio_port_direction_to_string(GPIOPortDirection direction) {
+	if (direction == IN) {
+		return "in";
+	} else {
+		return "out";
+	}
+}
+
 const char* get_err_code_msg(GPIOPort *port) {
 	char *msg = (char*)malloc(sizeof(char)*100);
 
@@ -25,21 +41,32 @@ const char* get_err_code_msg(GPIOPort *port) {
 
 		case ERR_CODE_CLOSE_FAIL:
 			sprintf(msg, "Failed to close a device control file "
-					"or directory: %s", strerror(port->details_err_num));
+					"or directory: %s", strerror(port->err_details_num));
 			break;
 
 		case ERR_CODE_OPEN_FAIL:
 			sprintf(msg, "Failed to open a device control file "
-					"or directory: %s", strerror(port->details_err_num));
+					"or directory: %s", strerror(port->err_details_num));
 			break;
 
 		case ERR_CODE_WRITE_FAIL:
 			sprintf(msg, "Failed to write to a device control file: %s",
-					strerror(port->details_err_num));
+					strerror(port->err_details_num));
+			break;
+
+		case ERR_CODE_READ_FAIL:
+			sprintf(msg, "Failed to read from a device control file: %s",
+					strerror(port->err_details_num));
+			break;
+
+		case ERR_CODE_PARSE_DIR_FAIL:
+			sprintf(msg, "Failed to parse GPIO port direction value: \"%s\"",
+					port->err_details_chars);
+
 			break;
 
 		default:
-			msg = "Unknown error code";
+			sprintf(msg, "Unknown error code: %d", port->err_code);
 			break;
 	}
 
@@ -52,7 +79,7 @@ GPIOPort* new_gpio(const unsigned int number) {
 
 	// ... Set error code
 	port->err_code = ERR_CODE_OK;
-	port->details_err_num = 0;
+	port->err_details_num = 0;
 	
 	// ... Set number
 	port->number = number;
@@ -81,15 +108,23 @@ GPIOPort* new_gpio(const unsigned int number) {
 
 	sprintf(port->control_path, "%s/gpio%d", GPIO_PORT_PATH, number);
 
+	// .. Set direction path
+	//     Add 10 for "/direction"
+	int dir_path_len = strlen(port->control_path);
+	dir_path_len += 10;
+
+	port->direction_control_path = (char*)malloc(sizeof(char)*dir_path_len);
+	sprintf(port->direction_control_path, "%s/direction", port->control_path);
+
 	return port;
 }
 
 
 void free_gpio(GPIOPort *port) {
 	free((char*)port->control_path);
+	free((char*)port->direction_control_path);
 	free(port);
 }
-
 
 bool gpio_get_status(GPIOPort *port, GPIOPortStatus *status) {
 	// Check if GPIO control directory exists
@@ -102,7 +137,7 @@ bool gpio_get_status(GPIOPort *port, GPIOPortStatus *status) {
 		// Try to close directory
 		if (closedir(dir) < 0) {
 			port->err_code = ERR_CODE_CLOSE_FAIL;
-			port->details_err_num = errno;
+			port->err_details_num = errno;
 
 			return false;
 		}
@@ -114,7 +149,7 @@ bool gpio_get_status(GPIOPort *port, GPIOPortStatus *status) {
 		return true;
 	} else {
 		port->err_code = ERR_CODE_OPEN_FAIL;
-		port->details_err_num = errno;
+		port->err_details_num = errno;
 
 		return false;
 	}
@@ -134,7 +169,7 @@ bool gpio_set_status(GPIOPort *port, const GPIOPortStatus status) {
 	FILE *file = fopen(file_path, "w");
 	if (!file) { // If failed to open file
 		port->err_code = ERR_CODE_OPEN_FAIL;
-		port->details_err_num = errno;
+		port->err_details_num = errno;
 
 		return false;
 	}
@@ -142,7 +177,7 @@ bool gpio_set_status(GPIOPort *port, const GPIOPortStatus status) {
 	// Write to file
 	if (fprintf(file, "%d\n", port->number) < 0) { // If failed to write to file
 		port->err_code = ERR_CODE_WRITE_FAIL;
-		port->details_err_num = errno;
+		port->err_details_num = errno;
 
 		return false;
 	}
@@ -150,10 +185,90 @@ bool gpio_set_status(GPIOPort *port, const GPIOPortStatus status) {
 	// Close file
 	if (fclose(file) != 0) { // If failed to close file
 		port->err_code = ERR_CODE_CLOSE_FAIL;
-		port->details_err_num = errno;
+		port->err_details_num = errno;
 
 		return false;
 	 }
+
+	return true;
+}
+
+
+bool gpio_get_direction(GPIOPort *port, GPIOPortDirection *direction) {	
+	// Open file
+	FILE *file = fopen(port->direction_control_path, "r");
+
+	if (!file) { // If failed to open file
+		port->err_code = ERR_CODE_OPEN_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	// Read file
+	char buffer[4];
+
+	if (fgets(buffer, sizeof(buffer), file) == NULL) { // If failed to read file
+		port->err_code = ERR_CODE_READ_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	// Interpret value
+	if (strcmp(buffer, "in\n") == 0) {
+		*direction = IN;
+
+		return true;
+	} else if (strcmp(buffer, "out") == 0) {
+		*direction = OUT;
+
+		return true;
+	} else {
+		port->err_code = ERR_CODE_PARSE_DIR_FAIL;
+		strcpy(port->err_details_chars, buffer);
+
+		return false;
+	}
+
+	// Close file
+	if (fclose(file) != 0) {
+		port->err_code = ERR_CODE_CLOSE_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	return true;
+}
+
+bool gpio_set_direction(GPIOPort *port, const GPIOPortDirection direction) {
+	// Open file
+	FILE *file = fopen(port->direction_control_path, "w");
+
+	if (!file) { // If failed to open file
+		port->err_code = ERR_CODE_OPEN_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	// Write file
+	if (fprintf(file, "%s\n", gpio_port_direction_to_string(direction)) < 0) {
+		// If failed to write
+		port->err_code = ERR_CODE_WRITE_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	// Close file
+	if (fclose(file) != 0) {
+		port->err_code = ERR_CODE_CLOSE_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
 
 	return true;
 }
