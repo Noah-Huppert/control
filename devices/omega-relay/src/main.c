@@ -7,10 +7,28 @@ void main() {
 
 	if (port->err_code < 0) {
 		printf("error creating GPIO port: %s\n",
-				get_err_code_msg(port->err_code));
+				get_err_code_msg(port));
+		return;
 	}
 
-	printf("GPIO port->control_path: %s\n", port->control_path);
+	GPIOPortStatus status;
+	if (!gpio_get_status(port, &status)) {
+		printf("error getting GPIO port status: %s\n",
+				get_err_code_msg(port));
+		return;
+	}
+
+	if (status == EXPORTED) {
+		printf("gpio port status: EXPORTED\n");
+	} else {
+		printf("gpio port status: UNEXPORTED\n");
+	}
+
+	if (!gpio_set_status(port, EXPORTED)) {
+		printf("error exporting GPIO port: %s\n",
+				get_err_code_msg(port));
+		return;
+	}
 
 	free_gpio(port);
 }

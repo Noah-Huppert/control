@@ -63,6 +63,11 @@ typedef struct {
 	 * Error number
 	 */
 	int err_code;
+
+	/**
+     * Errno value associated with error code
+	 */
+	int details_err_num;
 } GPIOPort;
 
 /**
@@ -73,13 +78,47 @@ typedef struct {
 /**
  * Indicates the provided port number is too large. See GPIO_PORT_MAX_NUMBER 
  * for the maximum (inclusive) allowed port number.
+ *
+ * details_err_num will not be set if this error occurs.
  */
 #define ERR_CODE_PORT_NUMBER_MAX -1
 
 /**
- * GPIO system path
+ * Indicates an error occurred while closing a device control file 
+ * or directory.
+ *
+ * details_err_num will be set to errno if this error occurs.
+ */
+#define ERR_CODE_CLOSE_FAIL -2
+
+/**
+ * Indicates an error occurred while opening a device control file 
+ *
+ * details_err_num will be set to errno if this error occurs.* or directory.
+ */
+#define ERR_CODE_OPEN_FAIL -3
+
+/**
+ * Indicates an error occurred while writing to a device control file.
+ *
+ * details_err_num will be set to errno if this error occurs.
+ */
+#define ERR_CODE_WRITE_FAIL -4
+
+/**
+ * GPIO system control directory path
  */
 extern const char* GPIO_PORT_PATH;
+
+/**
+ * GPIO system control file to export ports
+ */
+extern const char* GPIO_PORT_EXPORT_PATH;
+
+/**
+ * GPIO system control file to unexport ports
+ */
+extern const char* GPIO_PORT_UNEXPORT_PATH;
 
 /**
  * Indicates the maximum (inclusive) allowed port number
@@ -121,14 +160,13 @@ typedef enum {
  * @param err_code Error number
  * @returns Error message
  */
-const char* get_err_code_msg(const unsigned int err_code);
+const char* get_err_code_msg(GPIOPort *port);
 
 /**
  * Initialize a GPIOPort
  * @param port Variable to store GPIO port in
  * @param number GPIO port number
- * @returns An error number if one occurred during the creation. ERR_CODE_OK 
- * on success.
+ * @returns Pointer to GPIOPort
  */
 GPIOPort* new_gpio(const unsigned int number);
 
