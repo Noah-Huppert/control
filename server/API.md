@@ -2,7 +2,23 @@
 Control API.
 
 # Table Of Contents
+- [Overview](#overview)
+- [Health Check](#health-check)
 - [Register](#register)
+
+# Overview
+API endpoint documentation.  
+
+All request and response data is JSON encoded.
+
+# Health Check
+`GET /healthz`
+
+Request: None
+
+Response:
+
+- `ok` (boolean)
 
 # Register
 `POST /api/v0/register`  
