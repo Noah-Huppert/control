@@ -86,8 +86,35 @@ void main() {
 
 	printf("gpio port direction: %s\n", gpio_port_direction_to_string(direction));
 
+	// Set value
+	if (!gpio_set_value(port, true)) {
+		printf("error setting GPIO port value: %s\n",
+				get_err_code_msg(port));
+		return;
+	}
+
+	printf("set on\n");
+
 	// Get value
 	bool value;
+	if (!gpio_get_value(port, &value)) {
+		printf("error getting GPIO port value: %s\n",
+				get_err_code_msg(port));
+		return;
+	}
+
+	printf("gpio value: %d\n", value);
+
+	// Set value
+	if (!gpio_set_value(port, false)) {
+		printf("error setting GPIO port value: %s\n",
+				get_err_code_msg(port));
+		return;
+	}
+
+	printf("set off\n");
+
+	// Get value
 	if (!gpio_get_value(port, &value)) {
 		printf("error getting GPIO port value: %s\n",
 				get_err_code_msg(port));

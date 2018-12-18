@@ -327,3 +327,33 @@ bool gpio_get_value(GPIOPort *port, bool *value) {
 
 	return true;
 }
+
+bool gpio_set_value(GPIOPort *port, const bool value) {
+	// Open file
+	FILE *file = fopen(port->value_control_path, "w");
+
+	if (!file) { // If failed to open file
+		port->err_code = ERR_CODE_OPEN_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	// Write file
+	if (fprintf(file, "%d\n", value) < 0) { // If failed to write
+		port->err_code = ERR_CODE_WRITE_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	// Close file
+	if (fclose(file) != 0) { // If failed to close
+		port->err_code = ERR_CODE_CLOSE_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	return true;
+}
