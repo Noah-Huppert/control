@@ -60,9 +60,14 @@ typedef struct {
 	char *control_path;
 
 	/**
-	 * Path to direction system control for GPIO port
+	 * Path to direction system control file for GPIO port
 	 */
 	char *direction_control_path;
+
+	/**
+	 * Path to value system control file for GPIO port
+	 */
+	char *value_control_path;
 
 	/**
 	 * Error number
@@ -127,6 +132,14 @@ typedef struct {
  * err_details_chars will be set to the string value which could not be parsed.
  */
 #define ERR_CODE_PARSE_DIR_FAIL -6
+
+/**
+ * Indicates an error occurred while parsing a string value to a boolean value.
+ *
+ * err_details_chars will be set with the string value which could not 
+ * be parsed.
+ */
+#define ERR_CODE_PARSE_BOOL_FAIL -7
 
 /**
  * GPIO system control directory path

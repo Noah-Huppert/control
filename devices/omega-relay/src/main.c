@@ -51,6 +51,24 @@ void main() {
 	printf("gpio port direction: %s\n", gpio_port_direction_to_string(direction));
 
 	// Set direction
+	if(!gpio_set_direction(port, IN)) {
+		printf("error setting GPIO port direction: %s\n",
+				get_err_code_msg(port));
+		return;
+	}
+
+	printf("in-ed\n");
+
+	// Get direction
+	if (!gpio_get_direction(port, &direction)) {
+		printf("error getting GPIO port direction: %s\n",
+				get_err_code_msg(port));
+		return;
+	}
+
+	printf("gpio port direction: %s\n", gpio_port_direction_to_string(direction));
+
+	// Set direction
 	if(!gpio_set_direction(port, OUT)) {
 		printf("error setting GPIO port direction: %s\n",
 				get_err_code_msg(port));
@@ -68,23 +86,15 @@ void main() {
 
 	printf("gpio port direction: %s\n", gpio_port_direction_to_string(direction));
 
-	// Set direction
-	if(!gpio_set_direction(port, IN)) {
-		printf("error setting GPIO port direction: %s\n",
+	// Get value
+	bool value;
+	if (!gpio_get_value(port, &value)) {
+		printf("error getting GPIO port value: %s\n",
 				get_err_code_msg(port));
 		return;
 	}
 
-	printf("in-ed\n");
-
-	// Get direction
-	if (!gpio_get_direction(port, &direction)) {
-		printf("error getting GPIO port direction: %s\n",
-				get_err_code_msg(port));
-		return;
-	}
-
-	printf("gpio port direction: %s\n", gpio_port_direction_to_string(direction));
+	printf("gpio value: %d\n", value);
 
 	// Unexport
 	if (!gpio_set_status(port, UNEXPORTED)) {

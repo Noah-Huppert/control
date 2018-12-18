@@ -62,7 +62,11 @@ const char* get_err_code_msg(GPIOPort *port) {
 		case ERR_CODE_PARSE_DIR_FAIL:
 			sprintf(msg, "Failed to parse GPIO port direction value: \"%s\"",
 					port->err_details_chars);
+			break;
 
+		case ERR_CODE_PARSE_BOOL_FAIL:
+			sprintf(msg, "Failed to parse string into boolean: \"%s\"\n",
+					port->err_details_chars);
 			break;
 
 		default:
@@ -108,13 +112,21 @@ GPIOPort* new_gpio(const unsigned int number) {
 
 	sprintf(port->control_path, "%s/gpio%d", GPIO_PORT_PATH, number);
 
-	// .. Set direction path
+	// ... Set direction path
 	//     Add 10 for "/direction"
 	int dir_path_len = strlen(port->control_path);
 	dir_path_len += 10;
 
 	port->direction_control_path = (char*)malloc(sizeof(char)*dir_path_len);
 	sprintf(port->direction_control_path, "%s/direction", port->control_path);
+
+	// ... Set value path
+	//    Add 6 for "/value"
+	int val_path_len = strlen(port->control_path);
+	val_path_len += 6;
+
+	port->value_control_path = (char*)malloc(sizeof(char)*val_path_len);
+	sprintf(port->value_control_path, "%s/value", port->control_path);
 
 	return port;
 }
@@ -232,7 +244,7 @@ bool gpio_get_direction(GPIOPort *port, GPIOPortDirection *direction) {
 	}
 
 	// Close file
-	if (fclose(file) != 0) {
+	if (fclose(file) != 0) { // If failed to close
 		port->err_code = ERR_CODE_CLOSE_FAIL;
 		port->err_details_num = errno;
 
@@ -263,7 +275,50 @@ bool gpio_set_direction(GPIOPort *port, const GPIOPortDirection direction) {
 	}
 
 	// Close file
-	if (fclose(file) != 0) {
+	if (fclose(file) != 0) { // If failed to close
+		port->err_code = ERR_CODE_CLOSE_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	return true;
+}
+
+bool gpio_get_value(GPIOPort *port, bool *value) {
+	// Open file
+	FILE *file = fopen(port->value_control_path, "r");
+
+	if (!file) { // If failed to open file
+		port->err_code = ERR_CODE_OPEN_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	// Read file
+	char buffer[2];
+
+	if (fgets(buffer, sizeof(buffer), file) == NULL) { // If failed to read file
+		port->err_code = ERR_CODE_READ_FAIL;
+		port->err_details_num = errno;
+
+		return false;
+	}
+
+	if (strcmp("0", buffer) == 0) {
+		*value = false;
+	} else if (strcmp("1", buffer) == 0) {
+		*value = true;
+	} else {
+		port->err_code = ERR_CODE_PARSE_BOOL_FAIL;
+		strcpy(port->err_details_chars, buffer);
+
+		return false;
+	}
+
+	// Close file
+	if (fclose(file) != 0) { // If failed to close
 		port->err_code = ERR_CODE_CLOSE_FAIL;
 		port->err_details_num = errno;
 
